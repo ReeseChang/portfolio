@@ -12,7 +12,7 @@ Because these systems interact with paid production APIs (Anthropic, OpenAI) or 
 **A two-layer keyword and listing analysis system that combines a deterministic rules engine with a multi-step AI pipeline to drive Amazon advertising decisions.**
 * **Core Highlights:** Rules engine + LLM cascade separation, scenario-mode context injection, fan-out parallel listing analysis, ClickHouse historical analytics, and full per-call audit logging.
 * **Tech Stack:** TypeScript, Next.js, Supabase, ClickHouse Cloud, Anthropic API.
-* 👉 **[Read the Full System Breakdown](../amazon-ads-optimization/README.md)**
+* 👉 **[Read the Full System Breakdown](./amazon-ads-optimization/README.md)**
 
 ### 2. Atom Process Engine
 **A domain-agnostic AI pipeline engine where markdown files define processing logic and a thin infrastructure layer executes them.**
