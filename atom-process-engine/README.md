@@ -64,7 +64,7 @@ The three-layer model emerged independently twice — once in another system I b
 
 ## Related
 
-The AI pipeline layer in the [Amazon Ads AI Optimization](../amazon-ads-optimization) project is built on the same architecture — same three-layer separation, same markdown-driven step definitions, same schema validation at each boundary, same audit logging pattern. The engine was designed here first as a standalone system, then the pattern was carried into that project. The codebase was copied directly rather than referenced as a package, so both are self-contained.
+The AI pipeline layer in the [Amazon Ads AI Optimization](../amazon-ads-optimization/README.md) project is built on the same architecture — same three-layer separation, same markdown-driven step definitions, same schema validation at each boundary, same audit logging pattern. The engine was designed here first as a standalone system, then the pattern was carried into that project. The codebase was copied directly rather than referenced as a package, so both are self-contained.
 
 ## Links
 
