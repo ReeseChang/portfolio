@@ -68,7 +68,7 @@ The Active / Inactive toggle on the keyword table surfaces this split directly �
 
 ---
 
-## 🗺️ Screenshot
+## Screenshots
 
 - [Section 1: Dashboard & Workspace](#-section-1-dashboard--workspace)
 - [Section 2: Two-Layer Analysis Pipeline — Normal Mode](#-section-2-two-layer-analysis-pipeline--normal-mode)
@@ -104,7 +104,7 @@ The same workspace in light mode. Theme preference persists across the session.
 
 </details>
 
-[↑ Back to top](#-tour-navigation)
+[↑ Back to top](#screenshots)
 
 ---
 
@@ -141,7 +141,7 @@ Drilling into a specific keyword to see the full Call 1 output: the rule flag th
 
 </details>
 
-[↑ Back to top](#-tour-navigation)
+[↑ Back to top](#screenshots)
 
 ---
 
@@ -166,7 +166,7 @@ The keyword table after a Scenario Mode run, with rule flags and AI decisions vi
 
 </details>
 
-[↑ Back to top](#-tour-navigation)
+[↑ Back to top](#screenshots)
 
 ---
 
@@ -196,7 +196,7 @@ The inactive keyword view with a macro event flag toggled on, showing how an upc
 
 </details>
 
-[↑ Back to top](#-tour-navigation)
+[↑ Back to top](#screenshots)
 
 ---
 
@@ -229,7 +229,7 @@ A second listing result showing consistent structured output across different pr
 
 </details>
 
-[↑ Back to top](#-tour-navigation)
+[↑ Back to top](#screenshots)
 
 ---
 
@@ -262,7 +262,7 @@ The exact JSON payloads sent to and received from each AI call during a historic
 
 </details>
 
-[↑ Back to top](#-tour-navigation)
+[↑ Back to top](#screenshots)
 
 ---
 
@@ -300,7 +300,7 @@ The step dependency graph for a full analysis run, showing how Layer 1 (rules en
 
 </details>
 
-[↑ Back to top](#-tour-navigation)
+[↑ Back to top](#screenshots)
 
 ---
 
