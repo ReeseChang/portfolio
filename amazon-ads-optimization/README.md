@@ -68,18 +68,20 @@ The Active / Inactive toggle on the keyword table surfaces this split directly �
 
 ---
 
+<a name="screenshots"></a>
 ## Screenshots
 
-- [Section 1: Dashboard & Workspace](#-section-1-dashboard--workspace)
-- [Section 2: Two-Layer Analysis Pipeline — Normal Mode](#-section-2-two-layer-analysis-pipeline--normal-mode)
-- [Section 3: Two-Layer Analysis Pipeline — Scenario Mode](#-section-3-two-layer-analysis-pipeline--scenario-mode)
-- [Section 4: Inactive Keywords & Historical Analytics (ClickHouse)](#-section-4-inactive-keywords--historical-analytics-clickhouse)
-- [Section 5: AI Product Listing Analysis](#-section-5-ai-product-listing-analysis)
-- [Section 6: AI Analysis History & Logs](#-section-6-ai-analysis-history--logs)
-- [Section 7: Under the Hood — Rules Engine & Process Inspector](#-section-7-under-the-hood--rules-engine--process-inspector)
+- [Section 1: Dashboard & Workspace](#section-1)
+- [Section 2: Two-Layer Analysis Pipeline — Normal Mode](#section-2)
+- [Section 3: Two-Layer Analysis Pipeline — Scenario Mode](#section-3)
+- [Section 4: Inactive Keywords & Historical Analytics (ClickHouse)](#section-4)
+- [Section 5: AI Product Listing Analysis](#section-5)
+- [Section 6: AI Analysis History & Logs](#section-6)
+- [Section 7: Under the Hood — Rules Engine & Process Inspector](#section-7)
 
 ---
 
+<a name="section-1"></a>
 ## 📊 Section 1: Dashboard & Workspace
 
 Five demo clients are pre-loaded, each with their own campaign config, ACOS targets, and scenario context stored in Supabase. Selecting a client from the dropdown loads their campaign profile and populates the keyword workspace.
@@ -108,6 +110,7 @@ The same workspace in light mode. Theme preference persists across the session.
 
 ---
 
+<a name="section-2"></a>
 ## 🧠 Section 2: Two-Layer Analysis Pipeline — Normal Mode
 
 Analysis runs in two sequential layers, connected only at the API route.
@@ -145,6 +148,7 @@ Drilling into a specific keyword to see the full Call 1 output: the rule flag th
 
 ---
 
+<a name="section-3"></a>
 ## 🔄 Section 3: Two-Layer Analysis Pipeline — Scenario Mode
 
 Scenario Mode injects an external context string into the first LLM call before the run. The context is a plain-text field stored in Supabase per client (e.g. *"Mother's Day 7 days away, CPCs trending +40%"*). The pipeline structure, AI calls, and infrastructure are unchanged — only the prompt input differs. The model reasons against the injected business context before deciding whether to ACT or HOLD on a rule flag.
@@ -170,6 +174,7 @@ The keyword table after a Scenario Mode run, with rule flags and AI decisions vi
 
 ---
 
+<a name="section-4"></a>
 ## 💾 Section 4: Inactive Keywords & Historical Analytics (ClickHouse)
 
 The Active / Inactive toggle on the keyword table switches the underlying data source. Active keywords come from Supabase (transactional, row-level). Inactive keywords are served from ClickHouse Cloud — ~1,200 archived rows per client, built for timeframe-filtered scans (1m / 3m / 6m / 12m) and aggregation queries like lifetime spend and top pause reasons.
@@ -200,6 +205,7 @@ The inactive keyword view with a macro event flag toggled on, showing how an upc
 
 ---
 
+<a name="section-5"></a>
 ## 📝 Section 5: AI Product Listing Analysis
 
 A separate analysis flow for evaluating Amazon product listing copy — title, bullet points, description — against quality and campaign fit criteria. Unlike the keyword pipeline which runs two AI calls in sequence, the listing analysis fans out multiple AI calls in parallel (one per listing section), then aggregates the results into a single structured output. The same orchestration pattern and history logging used for keyword analysis applies here.
@@ -233,6 +239,7 @@ A second listing result showing consistent structured output across different pr
 
 ---
 
+<a name="section-6"></a>
 ## 🗂️ Section 6: AI Analysis History & Logs
 
 Every analysis run — keyword or listing — is logged to Supabase with the full input/output payloads per AI call. This gives a complete audit trail: what was sent to the model, what came back, and how it rolled up into the final recommendation.
@@ -266,6 +273,7 @@ The exact JSON payloads sent to and received from each AI call during a historic
 
 ---
 
+<a name="section-7"></a>
 ## 🛠️ Section 7: Under the Hood — Rules Engine & Process Inspector
 
 The Process Inspector exposes the internal configuration driving each analysis run: the system prompt templates injected at each atom boundary, the strict JSON schema contracts enforcing input/output shapes between atoms, and the pipeline step dependency graph. The Rules Inspector surfaces per-client ACOS tiers and rule priority order.
