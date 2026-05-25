@@ -77,7 +77,7 @@ The AI pipeline layer in the [Amazon Ads AI Optimization](../amazon-ads-optimiza
 ### Scenario Selector — Landing Page
 Two demo pipelines available from the landing page. Selecting a scenario loads the pipeline definition and input panel for that domain.
 
-![Landing / Scenario Selector](./screenshots/demo-landing-page.png)
+![Landing / Scenario Selector](./docs/screenshots/demo-landing-page.png)
 
 ---
 
@@ -89,31 +89,31 @@ Two demo pipelines available from the landing page. Selecting a scenario loads t
 **Pipeline ready — all steps pending:**
 All 5 steps listed with their dependencies and model tiers before the run starts.
 
-![Invoice — Ready](./screenshots/atom-2.png)
+![Invoice — Ready](./docs/screenshots/atom-2.png)
 
 **Step 1 of 5 — `extract-vendor-info` running** (cheap model, no dependencies):
-![Invoice — Step 1](./screenshots/atom-1.png)
+![Invoice — Step 1](./docs/screenshots/atom-1.png)
 
 **process.md — Pipeline Definition**
 
 The "view process.md" button surfaces the pipeline definition file directly in the UI. This is the markdown that drives the entire invoice pipeline — step names, dependencies, and model tier per step. No code, no deploy required to change it.
 
-![Invoice — process.md](./screenshots/atom-3.png)
+![Invoice — process.md](./docs/screenshots/atom-3.png)
 
 **Step Definition — `categorize-expenses`**
 
 Clicking into any individual step shows its full markdown definition: the task description, input contract, instructions, and output schema. This is the complete specification for one LLM call — everything the model receives is defined here.
 
-![Invoice — Step Definition](./screenshots/demo-invoice-atom.png)
+![Invoice — Step Definition](./docs/screenshots/demo-invoice-atom.png)
 
 **process.md viewed from the UI:**
-![Invoice — process.md modal](./screenshots/demo-invoice-process.png)
+![Invoice — process.md modal](./docs/screenshots/demo-invoice-process.png)
 
 **Completed Output**
 
 Five steps run in dependency order. The final output includes extracted vendor info, itemized line items, expense categorization by type, anomaly flags (duplicate charges, off-market pricing), and a generated summary report with a recommended action.
 
-![Invoice — Completed](./screenshots/demo-invoice.png)
+![Invoice — Completed](./docs/screenshots/demo-invoice.png)
 
 </details>
 
@@ -127,24 +127,24 @@ The left panel shows each step with its dependency, assigned model, and live sta
 <summary>👁️ View Screenshots (6 images)</summary>
 
 **Step 1 of 5 — `extract-participants` running** (cheap model, no dependencies):
-![Meeting Notes — Step 1](./screenshots/atom-4.png)
+![Meeting Notes — Step 1](./docs/screenshots/atom-4.png)
 
 **Step 2 of 5 — `extract-topics` running** (`extract-participants` complete, conf 1.00):
-![Meeting Notes — Step 2](./screenshots/atom-5.png)
+![Meeting Notes — Step 2](./docs/screenshots/atom-5.png)
 
 **Step 3 of 5 — `extract-decisions` running** (quality model, depends on topics, conf 0.95):
-![Meeting Notes — Step 3](./screenshots/atom-6.png)
+![Meeting Notes — Step 3](./docs/screenshots/atom-6.png)
 
 **Step 4 of 5 — `extract-action-items` running** (quality model, depends on decisions, conf 0.92):
-![Meeting Notes — Step 4](./screenshots/atom-7.png)
+![Meeting Notes — Step 4](./docs/screenshots/atom-7.png)
 
 **Step 5 of 5 — `generate-summary` running** (cheap model, final aggregation step):
-![Meeting Notes — Step 5](./screenshots/atom-8.png)
+![Meeting Notes — Step 5](./docs/screenshots/atom-8.png)
 
 **Completed Output**
 
 Participants, topics, decisions with owners, action items with assignees and due dates, and a narrative summary — all extracted from a raw meeting transcript in a single pipeline run.
 
-![Meeting Notes — Completed](./screenshots/demo-meeting-notes.png)
+![Meeting Notes — Completed](./docs/screenshots/demo-meeting-notes.png)
 
 </details>

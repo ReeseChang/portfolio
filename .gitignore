@@ -1,0 +1,40 @@
+# env
+.env
+.env.local
+.env*.local
+
+# Next.js
+.next/
+out/
+
+# dependencies
+node_modules/
+
+# build
+dist/
+tsconfig.tsbuildinfo
+
+# OS
+.DS_Store
+
+# Python
+__pycache__/
+**/__pycache__/
+*.pyc
+**/*.pyc
+
+# logs
+*.log
+npm-debug.log*
+
+
+# script
+# backfill*.ts
+
+
+# claude code
+.claude/
+memory/
+
+#human-only
+docs/human-only-zone/
