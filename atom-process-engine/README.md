@@ -6,145 +6,159 @@
 
 ## What It Is
 
-Most AI document-processing systems mix three things together in code: the pipeline mechanics (retry, validation, logging), the domain rules (what to extract, how to handle edge cases), and the AI calls themselves. That's why they're expensive to maintain — every new document type means new code, every edge case means new parser logic, every model change means a refactor.
+Most AI document-processing systems are expensive to maintain because they mix three things together in code: the pipeline mechanics (retry, validation, logging), the domain rules (what to extract, how to handle edge cases), and the AI calls themselves. Every new document type means new code. Every edge case means new parser logic. Every model change means a refactor.
 
 The Atom Process Engine separates these cleanly into three layers. All intelligence lives in markdown files. The code is deliberately dumb plumbing — reads markdown, calls the LLM, validates output, passes to the next step. Adding a new domain means writing new markdown, not writing new code.
 
-The demo runs two completely different pipelines — meeting notes analysis and invoice processing — on the same infrastructure. Paste meeting notes, watch 5 steps execute. Paste an invoice, watch a different 5 steps execute. Zero code changes between them.
+The demo runs two completely different pipelines — invoice processing and meeting notes analysis — on the same infrastructure. Paste an invoice, watch 5 steps execute. Paste meeting notes, watch a different 5 steps execute. Zero code changes between them. That's the claim, and the demo is the proof.
 
 ## Stack
 
 TypeScript · Next.js (Vercel) · Supabase (Postgres + Realtime) · Anthropic API · OpenRouter
 
-## The Architectural Idea
+## Architecture
 
-Three layers, strict separation, no leakage:
+Three layers, strict separation, no leakage between them:
 
-**Layer 1 — Infrastructure (hardcoded, domain-blind).** The orchestrator reads the dependency graph from the process markdown and runs steps in parallel where dependencies allow. Schema validation at every handoff. Retry up to 3 times per step. Confidence scoring — low score triggers escalation. Immutable audit log of every input and output.
+**Layer 1 — Infrastructure (hardcoded, domain-blind).** The orchestrator reads the dependency graph from the process markdown and runs steps in parallel where dependencies allow. Schema validation at every handoff. Retry up to 3 times per step. Confidence scoring — low score triggers escalation. Immutable audit log of every input and output. None of this layer knows anything about invoices or meeting notes.
 
-**Layer 2 — Markdown Definitions (soft, editable, never compiled).** Each pipeline step is a single markdown file describing one narrow task — input contract, instructions, output schema, good/bad examples. Process files sequence steps into pipelines per domain. Steps are reusable across domains: "extract date and normalize to ISO" works for invoices, contracts, meeting notes, any document with a date. Over time the library accumulates; new pipelines are assembled from existing steps rather than built from scratch. Non-developers can write new process definitions.
+**Layer 2 — Markdown Definitions (soft, editable, never compiled).** Each pipeline step is a single markdown file defining one narrow task — input contract, instructions, output schema, examples. Process files declare step sequences and dependencies per domain. Steps are reusable across domains: an "extract and normalize date" atom works for invoices, contracts, meeting notes, any document with a date. Over time the library accumulates; new pipelines are assembled from existing atoms rather than built from scratch. Non-developers can write and modify process definitions without touching code.
 
-**Layer 3 — AI Execution (commodity, swappable).** One LLM call per step with narrow context. No step knows about other steps. Model routing per step — cheaper models for extraction, higher-quality models for reasoning and analysis. Provider routing — OpenRouter during dev, Anthropic for production.
+**Layer 3 — AI Execution (commodity, swappable).** One LLM call per step with narrow context. No step knows about other steps. Model routing per step — cheaper models for extraction, higher-quality models for reasoning. Provider routing — OpenRouter during dev, Anthropic for production. Switching providers is a config change.
 
 ## What's Technically Interesting
 
-- **Dependency-graph orchestration with parallel execution.** Process markdown declares step dependencies. The orchestrator computes the execution graph at runtime and runs independent steps concurrently, serialized only where real dependencies exist. No fixed pipeline shape baked into code.
+- **Parallel execution from a dependency graph, not a fixed pipeline shape.** Most pipeline systems execute steps in a fixed sequence baked into code. Here, the orchestrator computes the execution graph at runtime from the process markdown — steps with no unmet dependencies run concurrently, serialized only where real data dependencies exist. The invoice pipeline demonstrates this directly: two independent extraction atoms run in parallel before the sequential reasoning chain begins.
 
-- **Schema validation at every step boundary.** Each step declares its output schema in its markdown. Output that doesn't conform is rejected before the next step sees it. This is how error compounding is prevented — one bad output can't silently propagate to become a wrong answer three steps later.
+- **Schema validation at every step boundary prevents error compounding.** Each atom declares its output schema in its markdown. Output that doesn't conform is rejected before the next step sees it. Without this, one malformed extraction silently becomes a wrong categorization becomes a wrong report — the error multiplies invisibly. Validation at every boundary catches it at the source.
 
-- **Confidence scoring + retry + escalation.** Every step returns a confidence score alongside its output. Below threshold triggers retry with adjusted context. Persistent low confidence escalates to a human-review queue rather than shipping a bad result silently.
+- **Confidence scoring + retry + escalation instead of silent failure.** Every step returns a confidence score alongside its output. Below threshold triggers retry with adjusted context. Persistent low confidence escalates to a human-review queue. The system knows when it doesn't know, rather than shipping a bad result quietly.
 
-- **Model routing per step.** The process markdown tags each step as `cheap` or `quality`. Extraction steps run on faster/cheaper models; reasoning steps run on higher-quality models. A runtime profile flag routes the same pipeline to free OpenRouter models for dev or paid Anthropic models for production.
+- **Model routing per step optimizes cost without sacrificing quality where it matters.** The process markdown tags each step as `cheap` or `quality`. Extraction steps run on faster, cheaper models. Reasoning steps — categorization, anomaly detection, decision extraction — run on higher-quality models. A runtime profile flag routes the entire pipeline to free OpenRouter models for dev or paid Anthropic models for production, with no code changes.
 
-- **Provider-agnostic LLM adapter.** One interface, multiple providers. Switching providers is a config change, not a code change.
+- **Elastic step granularity adapts to model capability.** Steps can be split or merged without touching infrastructure. When a stronger model ships, merge steps — fewer calls, lower cost, same output quality. When only a weaker model is available, split steps finer — more reliable under limited reasoning capacity. The architecture adapts to the model landscape rather than being locked to it.
 
-- **Real-time trace panel.** Every step input, output, confidence, retry, and validation event is logged to Supabase. The frontend subscribes via Realtime and streams step execution as it happens — color-coded by status. The trace is the demo: watch the architecture work live.
+- **Real-time trace panel makes the architecture visible.** Every step input, output, confidence score, retry, and validation event is logged to Supabase and streamed to the frontend via Realtime — color-coded by status, live as it happens. This isn't just an observability feature; it's what makes the demo legible. The trace is the architecture, made visible.
 
 ## Design Rationale
 
-- **Markdown as the soft layer, not code.** Compiled configuration lives in code and requires deploys to change. Markdown is text — editable by product people, diffable in git, reviewable in PRs, never requires a build step. The flexibility has to be *softer* than the mechanics for the architecture to pay off.
+**Markdown as the soft layer, not code.** Configuration that lives in code requires a build and a deploy to change. Markdown is text — editable by product people, diffable in git, reviewable in PRs, deployable by a file save. For the flexibility to be real, it has to be softer than the mechanics. That's what markdown buys.
 
-- **Two domains in the demo, not one.** Showing one pipeline proves nothing about the architecture — a monolithic system could do the same. Running two unrelated domains on the same infrastructure is what proves domain-blindness. The second pipeline is the test of the architectural claim.
+**Two domains in the demo, not one.** A single pipeline proves nothing about the architecture — any monolithic system could produce the same result. Running two unrelated domains on identical infrastructure is what proves domain-blindness. The second pipeline is the test of the architectural claim, not an extra feature.
 
-- **Elastic step granularity.** Steps can be split or merged without infrastructure changes. When a better model ships, merge steps — fewer calls, lower cost, same output. When a worse model is all that's available, split steps finer — more reliable under weaker reasoning. The architecture adapts to model capability rather than fighting it.
+**No framework.** No LangChain, no LlamaIndex. The core orchestrator is a few hundred lines of TypeScript. Every line is understood and controllable. Frameworks hardcode the granularity this architecture specifically keeps elastic — they would undermine the central design decision.
 
-- **No framework.** No LangChain, no LlamaIndex. The core orchestrator is a few hundred lines of TypeScript. Every line is understood and controllable. Frameworks hardcode the granularity this architecture specifically keeps elastic.
+## Architecture Contribution
+
+The three-layer model — dumb infrastructure, soft markdown definitions, commodity AI execution — emerged independently twice. First in NexusBrain, a config-driven chatbot engine I built earlier. Then again here for document processing, designed without referencing the prior system. That convergence is what made me trust it was load-bearing architecture rather than a clever one-off solution.
+
+The same pattern is also running in production in the [Amazon Ads AI Optimization](https://github.com/ReeseChang/portfolio/blob/main/amazon-ads-optimization/README.md) project — same three-layer separation, same markdown-driven step definitions, same schema validation at each boundary, same audit logging. The engine was designed here as a standalone system first; the pattern was then carried into that project by copying the codebase directly rather than packaging it as a dependency, so both remain self-contained.
+
+The architecture decisions are mine. Implementation was delegated to AI within documented constraints, using the same AI-directed development methodology I apply across projects.
 
 ## Roadmap
 
-- **Current:** Two-pipeline demo, dependency-graph orchestration, schema validation, retry/escalation, real-time trace, model routing, deployed on Vercel.
-- **Next (optional bolt-on):** Separate daemon process with atomic task claiming (`FOR UPDATE SKIP LOCKED`), two daemons racing with both visible in the trace panel — adds distributed systems depth without touching orchestrator or executor code.
-- **Further:** Step library expansion (reusable steps across domains), in-browser step editor (edit markdown, rerun pipeline, see different result live), confidence-threshold tuning per step type.
+**Current:** Two-pipeline demo, dependency-graph orchestration, schema validation, retry/escalation, real-time trace, model routing, deployed on Vercel.
 
-## How It Was Built
+**Next — distributed execution (optional bolt-on):** Add a separate worker daemon that claims tasks atomically using Postgres `FOR UPDATE SKIP LOCKED`. Run two daemons simultaneously — both visible in the trace panel competing for tasks. This adds a distributed systems layer (concurrent workers, atomic task claiming, race conditions handled at the DB level) without touching the orchestrator or executor code at all. That's the point: the architecture absorbs it cleanly.
 
-Solo build using AI-directed development. Architecture decisions are mine; implementation delegated to AI within documented constraints — the same methodology I use across my other projects.
-
-The three-layer model emerged independently twice — once in another system I built (NexusBrain, a config-driven chatbot engine), then again here for document processing. That convergence is what made me trust it was load-bearing architecture, not a clever one-off.
-
-## Related
-
-The AI pipeline layer in the [Amazon Ads AI Optimization](../amazon-ads-optimization/README.md) project is built on the same architecture — same three-layer separation, same markdown-driven step definitions, same schema validation at each boundary, same audit logging pattern. The engine was designed here first as a standalone system, then the pattern was carried into that project. The codebase was copied directly rather than referenced as a package, so both are self-contained.
+**Further:** Step library expansion (reusable atoms across domains), in-browser atom editor (edit markdown, rerun pipeline, see different result live), confidence-threshold tuning per step type.
 
 ## Links
 
-- Full codebase and session specs: private repo. Read access granted for hiring conversations — contact details in application / resume.
+Full codebase and session specs: private repo. Read access granted for hiring conversations — contact details in application / resume.
 
 ---
 
 ## Screenshots
 
-### Scenario Selector — Landing Page
-Two demo pipelines available from the landing page. Selecting a scenario loads the pipeline definition and input panel for that domain.
+### 1 — Landing Page
 
-![Landing / Scenario Selector](./docs/screenshots/demo-landing-page.png)
+Two pipelines available from the scenario selector. Each card shows the domain, a short description, and the atom count. Selecting one loads the pipeline definition and input panel for that domain.
+
+![Landing / Scenario Selector](./docs/screenshots/1-demo-landing-page.png)
 
 ---
 
-### Pipeline 1 — Invoice Processing
+### 2 — Pipeline: Invoice Processing
+
+The invoice pipeline has 5 atoms. The first two — `extract-vendor-info` and `extract-line-items` — have no dependencies and run in parallel immediately. The remaining three form a sequential reasoning chain: `categorize-expenses` waits on line items, `flag-anomalies` waits on categorization, and `generate-report` waits on both vendor info and anomaly flags. The dependency graph, not the code, determines the execution shape.
 
 <details open>
-<summary>👁️ View Screenshots (6 images)</summary>
+<summary>View Screenshots</summary>
 
-**Pipeline ready — all steps pending:**
-All 5 steps listed with their dependencies and model tiers before the run starts.
+**Steps 1 & 2 running in parallel** — `extract-vendor-info` and `extract-line-items` both fire immediately with no unmet dependencies. Both are cheap-model extraction tasks. This is the parallelism the dependency graph enables.
 
-![Invoice — Ready](./docs/screenshots/atom-2.png)
+![Invoice — Steps 1 & 2 parallel](./docs/screenshots/11-invoice-extract-vendor-and-line-items.png)
 
-**Step 1 of 5 — `extract-vendor-info` running** (cheap model, no dependencies):
-![Invoice — Step 1](./docs/screenshots/atom-1.png)
+**Step 3 — `categorize-expenses` running** — both extraction steps complete (conf 1.00 and 0.99). The quality-model categorization step unlocks and starts. Schema validation confirmed both upstream outputs before passing them here.
 
-**process.md — Pipeline Definition**
+![Invoice — Step 3](./docs/screenshots/12-invoice-categorize-expenses.png)
 
-The "view process.md" button surfaces the pipeline definition file directly in the UI. This is the markdown that drives the entire invoice pipeline — step names, dependencies, and model tier per step. No code, no deploy required to change it.
+**Step 4 — `flag-anomalies` running** — categorization completes (conf 0.95). Quality-model anomaly detection starts, consuming the categorized line items. Duplicate charges and off-market pricing are the targets.
 
-![Invoice — process.md](./docs/screenshots/atom-3.png)
+![Invoice — Step 4](./docs/screenshots/13-invoice-flag-anomalies.png)
 
-**Step Definition — `categorize-expenses`**
+**Step 5 — `generate-report` running** — anomaly flags complete (conf 0.92). The final cheap-model report step starts, pulling from both vendor info (step 1) and anomaly results (step 4) — a fan-in from two branches of the graph.
 
-Clicking into any individual step shows its full markdown definition: the task description, input contract, instructions, and output schema. This is the complete specification for one LLM call — everything the model receives is defined here.
+![Invoice — Step 5](./docs/screenshots/14-invoice-generate-report.png)
 
-![Invoice — Step Definition](./docs/screenshots/demo-invoice-atom.png)
+**Completed output** — All 5 atoms finished. Results: extracted vendor info, itemized line items, expenses categorized by type with subtotals, anomaly flags with severity, and a narrative summary with a recommended action.
 
-**process.md viewed from the UI:**
-![Invoice — process.md modal](./docs/screenshots/demo-invoice-process.png)
-
-**Completed Output**
-
-Five steps run in dependency order. The final output includes extracted vendor info, itemized line items, expense categorization by type, anomaly flags (duplicate charges, off-market pricing), and a generated summary report with a recommended action.
-
-![Invoice — Completed](./docs/screenshots/demo-invoice.png)
+![Invoice — Completed](./docs/screenshots/15-invoice-result.png)
 
 </details>
 
 ---
 
-### Pipeline 2 — Meeting Notes Analysis
+### 3 — Pipeline: Meeting Notes Analysis
 
-The left panel shows each step with its dependency, assigned model, and live status. Steps execute sequentially where dependencies require it — the highlighted card is the active step. Confidence scores appear as each step completes. The right panel streams results as they arrive, before the full run finishes.
+The meeting pipeline has 5 atoms in a strict sequential chain — each step depends entirely on the previous one's output. No parallelism. The dependency structure is different from the invoice pipeline, but the infrastructure executing it is identical. participants → topics → decisions → action items → summary.
 
 <details open>
-<summary>👁️ View Screenshots (6 images)</summary>
+<summary>View Screenshots</summary>
 
-**Step 1 of 5 — `extract-participants` running** (cheap model, no dependencies):
-![Meeting Notes — Step 1](./docs/screenshots/atom-4.png)
+**Step 1 — `extract-participants` running** — no dependencies, cheap model, fires immediately.
 
-**Step 2 of 5 — `extract-topics` running** (`extract-participants` complete, conf 1.00):
-![Meeting Notes — Step 2](./docs/screenshots/atom-5.png)
+![Meeting — Step 1](./docs/screenshots/21-meeting-extract-participants.png)
 
-**Step 3 of 5 — `extract-decisions` running** (quality model, depends on topics, conf 0.95):
-![Meeting Notes — Step 3](./docs/screenshots/atom-6.png)
+**Step 2 — `extract-topics` running** — participants complete (conf 1.00). Topics extraction starts on cheap model; participant context is now available if needed.
 
-**Step 4 of 5 — `extract-action-items` running** (quality model, depends on decisions, conf 0.92):
-![Meeting Notes — Step 4](./docs/screenshots/atom-7.png)
+![Meeting — Step 2](./docs/screenshots/22-meeting-extract-topics.png)
 
-**Step 5 of 5 — `generate-summary` running** (cheap model, final aggregation step):
-![Meeting Notes — Step 5](./docs/screenshots/atom-8.png)
+**Step 3 — `extract-decisions` running** — topics complete (conf 0.95). Switches to quality model here — extracting decisions requires reasoning over topic context, not just pattern matching.
 
-**Completed Output**
+![Meeting — Step 3](./docs/screenshots/23-extract-decisions.png)
 
-Participants, topics, decisions with owners, action items with assignees and due dates, and a narrative summary — all extracted from a raw meeting transcript in a single pipeline run.
+**Step 4 — `extract-action-items` running** — decisions complete (conf 0.92). Quality model continues; action items are derived from decisions, so the reasoning chain deepens.
 
-![Meeting Notes — Completed](./docs/screenshots/demo-meeting-notes.png)
+![Meeting — Step 4](./docs/screenshots/24-extract-action-items.png)
+
+**Step 5 — `generate-summary` running** — action items complete (conf 0.95). Back to cheap model for final aggregation — assembling a narrative from structured outputs is extraction, not reasoning.
+
+![Meeting — Step 5](./docs/screenshots/25-generate-summary.png)
+
+**Completed output** — All 5 atoms finished. Results: participant roster with roles, topic summaries, decisions with owners, action items with assignees and due dates, and a narrative summary paragraph.
+
+![Meeting — Completed](./docs/screenshots/26-meeting-result.png)
+
+</details>
+
+---
+
+### 4 — Process and Atom Definitions
+
+Every pipeline is fully inspectable in the UI. "View process.md" surfaces the process definition file — the dependency graph the orchestrator reads at runtime to compute execution order. Clicking any atom card opens its full markdown definition: task description, input contract, instructions, output schema. That file is the complete specification for a single LLM call. Edit the markdown, rerun the pipeline, get a different result — no code change, no deploy.
+
+<details open>
+<summary>View Screenshots</summary>
+
+**`categorize-expenses.md` — atom definition** — task description, input contract (line items from the prior atom as JSON), categorization instructions, allowed category list, and output schema. The process and model tier (quality) are shown in the header. This file is the entire specification for one LLM call.
+
+![Atom Definition — categorize-expenses](./docs/screenshots/31-demo-invoice-atom.png)
+
+**`process.md` — pipeline definition** — the full atom sequence with dependencies and model tiers for the invoice pipeline. This is what the orchestrator reads to compute the execution graph at runtime. No code encodes this structure.
+
+![Process Definition — invoice process.md](./docs/screenshots/32-demo-invoice-process.png)
 
 </details>
